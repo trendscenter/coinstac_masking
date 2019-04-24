@@ -24,32 +24,36 @@ def create_mask(data):
     return mask
 
 
-def local_1(args):
+def apply_mask(data, mask, state):
+    ut.log("Data Size: %s, Mask Shape: %s, Sum of Mask: %s" %
+           (str(data.shape), str(mask.shape), str(sum(sum(mask)))), state)
+    D = data[np.argwhere(mask), :]
+    return D
+
+
+def masking_local_1(args):
 
     state = args['state']
     inputs = args['input']
     cache = args['cache']
-
-    file_list = inputs['data'][0]
-    file_list = [
-        os.path.join(state["baseDirectory"], file) for file in file_list
-    ]
-    file_type = inputs['data'][1][0]
-    files_loaded = [ut.read_data(f, file_type) for f in file_list]
+    files_loaded = inputs["datasets"]
 
     mask_file = inputs['mask'][0]
-    mask_file_type = inputs['mask'][1][0]
+    mask_file_type = "nii"
     mask = ut.read_data([os.path.join(state["baseDirectory"], mask_file)],
-                        mask_file_type)
-    masks = [create_mask(data) for loaded in files_loaded]
+                        mask_file_type, state["clientId"])["0"]
+    flat_mask = ut.flatten_data(mask)
+    masked_data = {idx: apply_mask(ut.flatten_data(data), mask, state)
+                   for idx, data in files_loaded.items()}
 
     # Compile results to be transmitted to remote and cached for reuse in next iteration
     computation_output = {
+        "state": state,
         "output": {
-            "masks": masks,
-            "computation_phase": 'local_1'
+            "datasets": masked_data,
+            "computation_phase": 'masking_local_1'
         },
-        "cache": dict()
+        "cache": cache,
     }
 
     return computation_output
@@ -74,7 +78,7 @@ if __name__ == '__main__':
     phase_key = list(ut.listRecursive(parsed_args, 'computation_phase'))
 
     if not phase_key:
-        computation_output = local_1(parsed_args)
+        computation_output = masking_local_1(parsed_args)
         # Transmit results to remote
         # as file (for large volumes of data, OS overhead):
         # as JSON string (for smaller volumes of data, JSON conversion overhead):
