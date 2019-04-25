@@ -25,9 +25,14 @@ def create_mask(data):
 
 
 def apply_mask(data, mask, state):
-    ut.log("Data Size: %s, Mask Shape: %s, Sum of Mask: %s" %
-           (str(data.shape), str(mask.shape), str(sum(sum(mask)))), state)
-    D = data[np.argwhere(mask), :]
+    ut.log("Data Size: %s, Mask Shape: %s" %
+           (str(data.shape), str(mask.shape)), state)
+    D = data[mask.flatten() == 1, :]
+    ut.log("Masked Data Size: %s, Mask Shape: %s" %
+           (str(D.shape), str(mask.shape)), state)
+    ut.log("Sum Masked Data: %s, Sum Mask: %s" %
+           (str(sum(sum(D))), str(sum(sum(mask)))), state)
+
     return D
 
 
@@ -42,8 +47,8 @@ def masking_local_1(args):
     mask_file_type = "nii"
     mask = ut.read_data([os.path.join(state["baseDirectory"], mask_file)],
                         mask_file_type, state["clientId"])["0"]
-    flat_mask = ut.flatten_data(mask)
-    masked_data = {idx: apply_mask(ut.flatten_data(data), mask, state)
+    flat_mask = ut.flatten_data(mask, state)
+    masked_data = {idx: apply_mask(ut.flatten_data(data, state), flat_mask, state)
                    for idx, data in files_loaded.items()}
 
     # Compile results to be transmitted to remote and cached for reuse in next iteration
