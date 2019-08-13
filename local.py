@@ -45,7 +45,7 @@ def masking_local_1(args):
 
     mask_file = inputs['mask'][0]
     mask_file_type = "nii"
-    mask = ut.read_data([os.path.join(state["baseDirectory"], mask_file)],
+    mask = ut.read_data([os.path.join(mask_file)],
                         mask_file_type, state["clientId"])["0"]
     flat_mask = ut.flatten_data(mask, state)
     masked_data = {idx: apply_mask(ut.flatten_data(data, state), flat_mask, state)
